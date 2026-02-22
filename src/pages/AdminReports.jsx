@@ -1,160 +1,174 @@
-import React, { useMemo } from 'react';
-import Sidebar from '../components/Sidebar';
-import { marksData, studentsData } from '../data/dummyData';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import '../styles/AdminReports.css';
 
-export default function AdminReports() {
-  const studentReports = useMemo(() => {
-    return studentsData.map(student => {
-      const studentMarks = marksData.filter(m => m.studentId === student.id);
-      const avgMarks = studentMarks.length > 0 
-        ? Math.round(studentMarks.reduce((sum, m) => sum + m.marks, 0) / studentMarks.length)
-        : 0;
-      const avgAttendance = studentMarks.length > 0
-        ? Math.round(studentMarks.reduce((sum, m) => sum + m.attendance, 0) / studentMarks.length)
-        : 0;
+const AdminReports = () => {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState({});
+  const [reports, setReports] = useState({
+    topPerformers: [],
+    lowPerformers: [],
+    subjectAverage: {}
+  });
 
-      const getGrade = (percentage) => {
-        if (percentage >= 90) return 'A+';
-        if (percentage >= 80) return 'A';
-        if (percentage >= 70) return 'B';
-        if (percentage >= 60) return 'C';
-        return 'D';
-      };
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (user.role !== 'admin') {
+      navigate('/');
+    }
+    setCurrentUser(user);
 
-      return {
-        ...student,
-        avgMarks,
-        avgAttendance,
-        grade: getGrade(avgMarks),
-        recordCount: studentMarks.length
-      };
-    });
-  }, []);
+    // Load and process data
+    fetch('/src/data/dummyData.json')
+      .then(res => res.json())
+      .then(data => {
+        const performances = data.performances || [];
+        
+        // Calculate student averages
+        const studentAverages = {};
+        performances.forEach(perf => {
+          if (!studentAverages[perf.studentName]) {
+            studentAverages[perf.studentName] = { marks: [], attendance: [] };
+          }
+          studentAverages[perf.studentName].marks.push(perf.marks);
+          studentAverages[perf.studentName].attendance.push(perf.attendance);
+        });
 
-  const subjectReports = useMemo(() => {
-    const subjects = {};
-    marksData.forEach(record => {
-      if (!subjects[record.subject]) {
-        subjects[record.subject] = {
-          name: record.subject,
-          records: 0,
-          totalMarks: 0,
-          avgMarks: 0,
-          topScore: 0,
-          lowestScore: 100
-        };
-      }
-      subjects[record.subject].records++;
-      subjects[record.subject].totalMarks += record.marks;
-      subjects[record.subject].topScore = Math.max(subjects[record.subject].topScore, record.marks);
-      subjects[record.subject].lowestScore = Math.min(subjects[record.subject].lowestScore, record.marks);
-    });
+        const averages = Object.entries(studentAverages).map(([name, data]) => ({
+          name,
+          avgMarks: (data.marks.reduce((a, b) => a + b) / data.marks.length).toFixed(2),
+          avgAttendance: (data.attendance.reduce((a, b) => a + b) / data.attendance.length).toFixed(2)
+        })).sort((a, b) => b.avgMarks - a.avgMarks);
 
-    return Object.values(subjects).map(s => ({
-      ...s,
-      avgMarks: Math.round(s.totalMarks / s.records)
-    }));
-  }, []);
+        // Calculate subject averages
+        const subjectData = {};
+        performances.forEach(perf => {
+          if (!subjectData[perf.subject]) subjectData[perf.subject] = [];
+          subjectData[perf.subject].push(perf.marks);
+        });
+
+        const subjectAverage = {};
+        Object.keys(subjectData).forEach(subject => {
+          const marks = subjectData[subject];
+          subjectAverage[subject] = (marks.reduce((a, b) => a + b) / marks.length).toFixed(2);
+        });
+
+        setReports({
+          topPerformers: averages.slice(0, 5),
+          lowPerformers: averages.slice(-5).reverse(),
+          subjectAverage
+        });
+      })
+      .catch(() => {
+        // Fallback reports
+        setReports({
+          topPerformers: [
+            { name: 'Priya Sharma', avgMarks: '91.33', avgAttendance: '97.00' },
+            { name: 'Neha Patel', avgMarks: '87.33', avgAttendance: '93.00' }
+          ],
+          lowPerformers: [
+            { name: 'Rahul Singh', avgMarks: '75.67', avgAttendance: '84.33' }
+          ],
+          subjectAverage: {
+            'Mathematics': '85.00',
+            'English': '79.20',
+            'Science': '87.00'
+          }
+        });
+      });
+  }, [navigate]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      
-      <div className="flex-1 p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">📋 Performance Reports</h1>
+    <div className="admin-reports">
+      <Header
+        title="Performance Reports"
+        userName={currentUser.name}
+        userEmail={currentUser.email}
+        userRole="admin"
+      />
 
-        {/* Student Reports */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Student Performance Report</h2>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-primary text-white">
+      <nav className="admin-nav">
+        <button onClick={() => navigate('/admin/dashboard')} className="nav-btn">Dashboard</button>
+        <button onClick={() => navigate('/admin/add-performance')} className="nav-btn">Add Performance</button>
+        <button onClick={() => navigate('/admin/view-students')} className="nav-btn">View Students</button>
+        <button onClick={() => navigate('/admin/reports')} className="nav-btn active">Reports</button>
+        <button onClick={() => navigate('/admin/analytics')} className="nav-btn">Analytics</button>
+      </nav>
+
+      <main className="reports-container">
+        <section className="report-section">
+          <h2>Top Performers</h2>
+          <div className="report-table-container">
+            <table>
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left">Student Name</th>
-                  <th className="px-6 py-4 text-left">Class</th>
-                  <th className="px-6 py-4 text-center">Avg Marks</th>
-                  <th className="px-6 py-4 text-center">Grade</th>
-                  <th className="px-6 py-4 text-center">Attendance</th>
-                  <th className="px-6 py-4 text-center">Records</th>
+                  <th>Student Name</th>
+                  <th>Average Marks</th>
+                  <th>Average Attendance</th>
                 </tr>
               </thead>
               <tbody>
-                {studentReports.map((student, idx) => (
-                  <tr key={student.id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                    <td className="px-6 py-4 font-medium">{student.name}</td>
-                    <td className="px-6 py-4">{student.class}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-blue-50 text-primary px-3 py-1 rounded font-semibold">
-                        {student.avgMarks}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 rounded font-bold text-white ${
-                        student.grade === 'A+' || student.grade === 'A' ? 'bg-green-500' :
-                        student.grade === 'B' ? 'bg-blue-500' :
-                        student.grade === 'C' ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`}>
-                        {student.grade}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">{student.avgAttendance}%</td>
-                    <td className="px-6 py-4 text-center">{student.recordCount}</td>
+                {reports.topPerformers.map((student, idx) => (
+                  <tr key={idx} className="top-performer">
+                    <td>{student.name}</td>
+                    <td>{student.avgMarks}</td>
+                    <td>{student.avgAttendance}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* Subject Reports */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Subject Performance Report</h2>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-secondary text-white">
+        <section className="report-section">
+          <h2>Subject-wise Performance</h2>
+          <div className="report-table-container">
+            <table>
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left">Subject</th>
-                  <th className="px-6 py-4 text-center">Records</th>
-                  <th className="px-6 py-4 text-center">Avg Marks</th>
-                  <th className="px-6 py-4 text-center">Highest</th>
-                  <th className="px-6 py-4 text-center">Lowest</th>
+                  <th>Subject</th>
+                  <th>Average Marks</th>
                 </tr>
               </thead>
               <tbody>
-                {subjectReports.map((subject, idx) => (
-                  <tr key={subject.name} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                    <td className="px-6 py-4 font-medium">{subject.name}</td>
-                    <td className="px-6 py-4 text-center">{subject.records}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-green-50 text-secondary px-3 py-1 rounded font-semibold">
-                        {subject.avgMarks}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-blue-50 text-primary px-3 py-1 rounded font-semibold">
-                        {subject.topScore}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-red-50 text-danger px-3 py-1 rounded font-semibold">
-                        {subject.lowestScore}%
-                      </span>
-                    </td>
+                {Object.entries(reports.subjectAverage).map(([subject, avg], idx) => (
+                  <tr key={idx}>
+                    <td>{subject}</td>
+                    <td>{avg}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <button
-          onClick={() => window.print()}
-          className="mt-8 bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition font-semibold"
-        >
-          🖨️ Print Reports
-        </button>
-      </div>
+        <section className="report-section">
+          <h2>Students Needing Improvement</h2>
+          <div className="report-table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Average Marks</th>
+                  <th>Average Attendance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.lowPerformers.map((student, idx) => (
+                  <tr key={idx} className="low-performer">
+                    <td>{student.name}</td>
+                    <td>{student.avgMarks}</td>
+                    <td>{student.avgAttendance}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   );
-}
+};
+
+export default AdminReports;

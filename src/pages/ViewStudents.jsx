@@ -1,66 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import StudentCard from '../components/StudentCard';
-import { studentsData, marksData } from '../data/dummyData';
+import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import '../styles/ViewStudents.css';
 
-export default function ViewStudents() {
+const ViewStudents = () => {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState({});
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    setStudents(studentsData);
-  }, []);
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (user.role !== 'admin') {
+      navigate('/');
+    }
+    setCurrentUser(user);
 
-  const getStudentMarks = (studentId) => {
-    return marksData.filter(m => m.studentId === studentId);
-  };
+    // Load students
+    fetch('/src/data/dummyData.json')
+      .then(res => res.json())
+      .then(data => setStudents(data.students))
+      .catch(() => {
+        const fallbackStudents = [
+          { id: 1, name: "Arjun Kumar", email: "arjun@student.com", class: "10A", enrollment: "2023-01-15" },
+          { id: 2, name: "Priya Sharma", email: "priya@student.com", class: "10B", enrollment: "2023-02-20" },
+          { id: 3, name: "Rahul Singh", email: "rahul@student.com", class: "10A", enrollment: "2023-03-10" },
+          { id: 4, name: "Neha Patel", email: "neha@student.com", class: "10C", enrollment: "2023-04-05" },
+          { id: 5, name: "Dhruv Verma", email: "dhruv@student.com", class: "10B", enrollment: "2023-05-12" }
+        ];
+        setStudents(fallbackStudents);
+      });
+  }, [navigate]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      
-      <div className="flex-1 p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">👥 View All Students</h1>
+    <div className="view-students">
+      <Header
+        title="View All Students"
+        userName={currentUser.name}
+        userEmail={currentUser.email}
+        userRole="admin"
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {students.map(student => (
-            <StudentCard
-              key={student.id}
-              student={student}
-              marks={getStudentMarks(student.id)}
-              onView={() => {
-                // Could navigate to detailed student view
-                alert(`Viewing details for ${student.name}`);
-              }}
-            />
-          ))}
-        </div>
+      <nav className="admin-nav">
+        <button onClick={() => navigate('/admin/dashboard')} className="nav-btn">Dashboard</button>
+        <button onClick={() => navigate('/admin/add-performance')} className="nav-btn">Add Performance</button>
+        <button onClick={() => navigate('/admin/view-students')} className="nav-btn active">View Students</button>
+        <button onClick={() => navigate('/admin/reports')} className="nav-btn">Reports</button>
+        <button onClick={() => navigate('/admin/analytics')} className="nav-btn">Analytics</button>
+      </nav>
 
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📊 Summary Statistics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-gray-600 text-sm">Total Students</p>
-              <p className="text-3xl font-bold text-primary">{students.length}</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-gray-600 text-sm">Total Records</p>
-              <p className="text-3xl font-bold text-secondary">{marksData.length}</p>
-            </div>
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <p className="text-gray-600 text-sm">Avg Marks</p>
-              <p className="text-3xl font-bold text-warning">
-                {Math.round(marksData.reduce((sum, m) => sum + m.marks, 0) / marksData.length)}%
-              </p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-gray-600 text-sm">Avg Attendance</p>
-              <p className="text-3xl font-bold text-purple-600">
-                {Math.round(marksData.reduce((sum, m) => sum + m.attendance, 0) / marksData.length)}%
-              </p>
-            </div>
+      <main className="content-container">
+        <div className="students-container">
+          <div className="total-students">
+            Total Students: <strong>{students.length}</strong>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Class</th>
+                  <th>Enrollment Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(student => (
+                  <tr key={student.id}>
+                    <td>{student.id}</td>
+                    <td>{student.name}</td>
+                    <td>{student.email}</td>
+                    <td>{student.class}</td>
+                    <td>{new Date(student.enrollment).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
+
+export default ViewStudents;

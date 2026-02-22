@@ -1,172 +1,175 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProgressBar from '../components/ProgressBar';
-import RecommendationsSection from '../components/RecommendationsSection';
-import { LineChartComponent, BarChartComponent } from '../components/Charts';
-import { marksData, studentsData } from '../data/dummyData';
+import Header from '../components/Header';
+import '../styles/StudentDashboard.css';
 
-export default function StudentDashboard({ user }) {
+const StudentDashboard = () => {
   const navigate = useNavigate();
-  const [studentData, setStudentData] = useState(null);
-  const [studentMarks, setStudentMarks] = useState([]);
+  const [student, setStudent] = useState(null);
+  const [performances, setPerformances] = useState([]);
 
   useEffect(() => {
-    // Find student by name
-    const student = studentsData.find(s => s.name.toLowerCase().includes(user?.name?.toLowerCase() || ''));
-    if (student) {
-      setStudentData(student);
-      setStudentMarks(marksData.filter(m => m.studentId === student.id));
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.role !== 'student') {
+      navigate('/');
     }
-  }, [user]);
+    setStudent(currentUser);
 
-  if (!studentData) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">Loading student data...</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
+    // Load performances for this student
+    fetch('/src/data/dummyData.json')
+      .then(res => res.json())
+      .then(data => {
+        const studentPerfs = data.performances.filter(p => 
+          p.studentId === parseInt(currentUser.id) || 
+          p.studentName === currentUser.name
+        );
+        setPerformances(studentPerfs);
+      })
+      .catch(() => {
+        // Fallback data
+        const fallbackPerfs = [
+          { id: 1, subject: "Mathematics", marks: 85, attendance: 92, semester: "Sem 1" },
+          { id: 2, subject: "English", marks: 78, attendance: 88, semester: "Sem 1" },
+          { id: 3, subject: "Science", marks: 90, attendance: 95, semester: "Sem 1" }
+        ];
+        setPerformances(fallbackPerfs);
+      });
+  }, [navigate]);
 
-  const avgMarks = studentMarks.length > 0
-    ? Math.round(studentMarks.reduce((sum, m) => sum + m.marks, 0) / studentMarks.length)
-    : 0;
+  const getAvgMarks = () => {
+    if (performances.length === 0) return 0;
+    return (performances.reduce((sum, p) => sum + p.marks, 0) / performances.length).toFixed(2);
+  };
 
-  const avgAttendance = studentMarks.length > 0
-    ? Math.round(studentMarks.reduce((sum, m) => sum + m.attendance, 0) / studentMarks.length)
-    : 0;
+  const getAvgAttendance = () => {
+    if (performances.length === 0) return 0;
+    return (performances.reduce((sum, p) => sum + p.attendance, 0) / performances.length).toFixed(2);
+  };
 
-  const getGrade = (percentage) => {
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B';
-    if (percentage >= 60) return 'C';
+  const getGrade = (marks) => {
+    if (marks >= 90) return 'A+';
+    if (marks >= 80) return 'A';
+    if (marks >= 70) return 'B';
+    if (marks >= 60) return 'C';
     return 'D';
   };
 
-  const subjectData = studentMarks.map(m => ({
-    name: m.subject,
-    marks: m.marks,
-    attendance: m.attendance
-  }));
-
-  const chartData = studentMarks.map(m => ({
-    name: m.subject.substring(0, 3),
-    marks: m.marks,
-    attendance: m.attendance
-  }));
+  if (!student) {
+    return <div className="student-dashboard"><p>Loading...</p></div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-secondary text-white p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">👨‍🎓 Welcome, {studentData.name}!</h1>
-          <p className="text-blue-100">Class: {studentData.class}</p>
-        </div>
-      </div>
+    <div className="student-dashboard">
+      <Header
+        title={`Welcome, ${student.name}`}
+        userName={student.name}
+        userEmail={student.email}
+        userRole="student"
+      />
 
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600 text-sm mb-2">Overall Grade</p>
-            <p className="text-4xl font-bold text-secondary">{getGrade(avgMarks)}</p>
+      <main className="student-content">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">📚</div>
+            <div className="stat-info">
+              <h3>Subjects</h3>
+              <p className="stat-value">{new Set(performances.map(p => p.subject)).size}</p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600 text-sm mb-2">Average Marks</p>
-            <p className="text-4xl font-bold text-primary">{avgMarks}%</p>
+          <div className="stat-card">
+            <div className="stat-icon">⭐</div>
+            <div className="stat-info">
+              <h3>Average Marks</h3>
+              <p className="stat-value">{getAvgMarks()}</p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600 text-sm mb-2">Attendance</p>
-            <p className="text-4xl font-bold text-warning">{avgAttendance}%</p>
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-info">
+              <h3>Average Attendance</h3>
+              <p className="stat-value">{getAvgAttendance()}%</p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600 text-sm mb-2">Total Records</p>
-            <p className="text-4xl font-bold text-danger">{studentMarks.length}</p>
+          <div className="stat-card">
+            <div className="stat-icon">📊</div>
+            <div className="stat-info">
+              <h3>Overall Grade</h3>
+              <p className="stat-value">{getGrade(parseFloat(getAvgMarks()))}</p>
+            </div>
           </div>
         </div>
 
-        {/* Progress Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">📊 Performance Progress</h2>
-          <ProgressBar percentage={avgMarks} label="Overall Performance" colorClass="auto" />
-          <ProgressBar percentage={avgAttendance} label="Attendance Rate" colorClass="auto" />
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <BarChartComponent
-            data={chartData}
-            dataKey="marks"
-            title="Subject-wise Marks"
-          />
-          <BarChartComponent
-            data={chartData}
-            dataKey="attendance"
-            title="Subject-wise Attendance"
-          />
-        </div>
-
-        {/* Subject Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">📚 Subject Details</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-primary text-white">
+        <section className="performance-section">
+          <h2>Performance Details</h2>
+          <div className="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left">Subject</th>
-                  <th className="px-6 py-3 text-center">Marks</th>
-                  <th className="px-6 py-3 text-center">Attendance</th>
-                  <th className="px-6 py-3 text-center">Semester</th>
+                  <th>Subject</th>
+                  <th>Marks</th>
+                  <th>Grade</th>
+                  <th>Attendance</th>
+                  <th>Semester</th>
                 </tr>
               </thead>
               <tbody>
-                {studentMarks.map((mark, idx) => (
-                  <tr key={mark.id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                    <td className="px-6 py-3 font-medium">{mark.subject}</td>
-                    <td className="px-6 py-3 text-center">
-                      <span className="bg-blue-50 text-primary px-3 py-1 rounded font-bold">
-                        {mark.marks}%
-                      </span>
+                {performances.map(perf => (
+                  <tr key={perf.id}>
+                    <td>{perf.subject}</td>
+                    <td>{perf.marks}</td>
+                    <td className={`grade-${getGrade(perf.marks).toLowerCase()}`}>
+                      {getGrade(perf.marks)}
                     </td>
-                    <td className="px-6 py-3 text-center">
-                      <span className="bg-green-50 text-secondary px-3 py-1 rounded font-bold">
-                        {mark.attendance}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-center text-gray-600">{mark.semester}</td>
+                    <td>{perf.attendance}%</td>
+                    <td>{perf.semester}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* Recommendations */}
-        <RecommendationsSection
-          studentMarks={studentMarks}
-          averageMarks={avgMarks}
-        />
+        <section className="progress-section">
+          <h2>Subject-wise Performance</h2>
+          <div className="progress-bars">
+            {performances.map(perf => (
+              <div key={perf.id} className="progress-item">
+                <div className="progress-header">
+                  <span>{perf.subject}</span>
+                  <span className="progress-value">{perf.marks}/100</span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${perf.marks}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Logout Button */}
-        <button
-          onClick={() => navigate('/')}
-          className="w-full mt-8 bg-danger text-white py-3 px-4 rounded-lg hover:bg-red-600 transition font-semibold"
-        >
-          Logout
-        </button>
-      </div>
+        <section className="recommendations-section">
+          <h2>Recommendations</h2>
+          <div className="recommendations">
+            {getAvgMarks() < 75 ? (
+              <p>📚 Focus on improving weak subjects. Consider extra study sessions.</p>
+            ) : (
+              <p>⭐ Great performance! Keep up the excellent work.</p>
+            )}
+            {getAvgAttendance() < 85 ? (
+              <p>📝 Improve your attendance. Regular classes help in better understanding.</p>
+            ) : (
+              <p>✅ Excellent attendance! Keep consistent participation.</p>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   );
-}
+};
+
+export default StudentDashboard;

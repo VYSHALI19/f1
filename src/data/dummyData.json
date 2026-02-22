@@ -1,0 +1,26 @@
+{
+  "students": [
+    { "id": 1, "name": "Arjun Kumar", "email": "arjun@student.com", "class": "10A", "enrollment": "2023-01-15" },
+    { "id": 2, "name": "Priya Sharma", "email": "priya@student.com", "class": "10B", "enrollment": "2023-02-20" },
+    { "id": 3, "name": "Rahul Singh", "email": "rahul@student.com", "class": "10A", "enrollment": "2023-03-10" },
+    { "id": 4, "name": "Neha Patel", "email": "neha@student.com", "class": "10C", "enrollment": "2023-04-05" },
+    { "id": 5, "name": "Dhruv Verma", "email": "dhruv@student.com", "class": "10B", "enrollment": "2023-05-12" }
+  ],
+  "performances": [
+    { "id": 1, "studentId": 1, "studentName": "Arjun Kumar", "subject": "Mathematics", "marks": 85, "attendance": 92, "semester": "Sem 1", "date": "2024-01-15" },
+    { "id": 2, "studentId": 1, "studentName": "Arjun Kumar", "subject": "English", "marks": 78, "attendance": 88, "semester": "Sem 1", "date": "2024-01-15" },
+    { "id": 3, "studentId": 1, "studentName": "Arjun Kumar", "subject": "Science", "marks": 90, "attendance": 95, "semester": "Sem 1", "date": "2024-01-15" },
+    { "id": 4, "studentId": 2, "studentName": "Priya Sharma", "subject": "Mathematics", "marks": 92, "attendance": 98, "semester": "Sem 1", "date": "2024-01-20" },
+    { "id": 5, "studentId": 2, "studentName": "Priya Sharma", "subject": "English", "marks": 88, "attendance": 96, "semester": "Sem 1", "date": "2024-01-20" },
+    { "id": 6, "studentId": 2, "studentName": "Priya Sharma", "subject": "Science", "marks": 94, "attendance": 97, "semester": "Sem 1", "date": "2024-01-20" },
+    { "id": 7, "studentId": 3, "studentName": "Rahul Singh", "subject": "Mathematics", "marks": 75, "attendance": 85, "semester": "Sem 1", "date": "2024-01-25" },
+    { "id": 8, "studentId": 3, "studentName": "Rahul Singh", "subject": "English", "marks": 72, "attendance": 80, "semester": "Sem 1", "date": "2024-01-25" },
+    { "id": 9, "studentId": 3, "studentName": "Rahul Singh", "subject": "Science", "marks": 80, "attendance": 88, "semester": "Sem 1", "date": "2024-01-25" },
+    { "id": 10, "studentId": 4, "studentName": "Neha Patel", "subject": "Mathematics", "marks": 88, "attendance": 94, "semester": "Sem 1", "date": "2024-02-01" },
+    { "id": 11, "studentId": 4, "studentName": "Neha Patel", "subject": "English", "marks": 85, "attendance": 92, "semester": "Sem 1", "date": "2024-02-01" },
+    { "id": 12, "studentId": 4, "studentName": "Neha Patel", "subject": "Science", "marks": 89, "attendance": 93, "semester": "Sem 1", "date": "2024-02-01" },
+    { "id": 13, "studentId": 5, "studentName": "Dhruv Verma", "subject": "Mathematics", "marks": 82, "attendance": 90, "semester": "Sem 1", "date": "2024-02-05" },
+    { "id": 14, "studentId": 5, "studentName": "Dhruv Verma", "subject": "English", "marks": 80, "attendance": 88, "semester": "Sem 1", "date": "2024-02-05" },
+    { "id": 15, "studentId": 5, "studentName": "Dhruv Verma", "subject": "Science", "marks": 84, "attendance": 91, "semester": "Sem 1", "date": "2024-02-05" }
+  ]
+}
